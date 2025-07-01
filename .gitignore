@@ -1,9 +1,7 @@
-# macOS
 .DS_Store
-
-# Xcode
-build/
-DerivedData/
-*.xcuserdata/
-*.xcuserstate
+*.xcuserdata
+*.xccheckout
 *.xcscmblueprint
+DerivedData/
+build/
+
