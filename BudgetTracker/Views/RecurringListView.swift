@@ -11,6 +11,7 @@ struct RecurringListView: View {
     @State private var showAddSheet = false
     @State private var editingRecurring: RecurringTransaction?
     @State private var showEditSheet = false
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         List {
@@ -45,8 +46,32 @@ struct RecurringListView: View {
                 Button("Add") {
                     showAddSheet = true
                 }
+
+                Button(action: { vm.loadFromExternalFile() }) {
+                    Label("Load", systemImage: "tray.and.arrow.down")
+                }
+
+                Button(action: { vm.saveToExternalFile() }) {
+                    Label("Save", systemImage: "tray.and.arrow.up")
+                }
+
+                Button(role: .destructive, action: {
+                    showDeleteConfirmation = true
+                }) {
+                    Label("Delete All", systemImage: "trash")
+                }
             }
         }
+        .alert("Delete All Transactions?", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                vm.transactions.removeAll()
+                vm.save()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will remove all transactions permanently.")
+        }
+
         .sheet(isPresented: $showAddSheet) {
             VStack(spacing: 0) {
                 HStack {

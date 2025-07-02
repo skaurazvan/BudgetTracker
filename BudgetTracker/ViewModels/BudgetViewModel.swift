@@ -35,6 +35,44 @@ class BudgetViewModel: ObservableObject {
     }
 
     private var cancellables = Set<AnyCancellable>()
+    var transactionsFileURL: URL {
+        let fm = FileManager.default
+
+        // Attempt to save to ~/Documents/BudgetTracker/
+        let documentsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let localBudgetFolder = documentsURL.appendingPathComponent("BudgetTracker")
+
+        // Ensure the local folder exists
+        if !fm.fileExists(atPath: localBudgetFolder.path) {
+            try? fm.createDirectory(at: localBudgetFolder, withIntermediateDirectories: true)
+        }
+
+        return localBudgetFolder.appendingPathComponent("transactions.json")
+    }
+
+    func saveToExternalFile() {
+        do {
+            let data = try JSONEncoder().encode(transactions)
+            try data.write(to: transactionsFileURL, options: [.atomic])
+            print("✅ Transactions saved to \(transactionsFileURL)")
+        } catch {
+            print("❌ Failed to save transactions: \(error)")
+        }
+    }
+
+    func loadFromExternalFile() {
+        do {
+            let data = try Data(contentsOf: transactionsFileURL)
+            let loaded = try JSONDecoder().decode([Transaction].self, from: data)
+            DispatchQueue.main.async {
+                self.transactions = loaded
+            }
+            print("✅ Transactions loaded from \(transactionsFileURL)")
+        } catch {
+            print("❌ Failed to load transactions: \(error)")
+        }
+    }
+
 
     func ensureStandardCategories() {
         let existingNames = Set(categories.map { $0.name.lowercased() })
