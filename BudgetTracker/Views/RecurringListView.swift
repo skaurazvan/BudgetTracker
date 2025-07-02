@@ -11,7 +11,10 @@ struct RecurringListView: View {
     @State private var showAddSheet = false
     @State private var editingRecurring: RecurringTransaction?
     @State private var showEditSheet = false
+    @State private var showLoadOptions = false
+    @State private var showSaveOptions = false
     @State private var showDeleteConfirmation = false
+
 
     var body: some View {
         List {
@@ -40,31 +43,86 @@ struct RecurringListView: View {
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
                 Button(action: { vm.refreshTransactions() }) {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Image(systemName: "arrow.clockwise")
+                        .help("Refresh")
                 }
 
-                Button("Add") {
-                    showAddSheet = true
+                Button(action: { showAddSheet = true }) {
+                    Image(systemName: "plus")
+                        .help("Add")
                 }
 
-                Button(action: { vm.loadFromExternalFile() }) {
-                    Label("Load", systemImage: "tray.and.arrow.down")
+                Button(action: { showLoadOptions = true }) {
+                    Image(systemName: "tray.and.arrow.down")
+                        .help("Load")
                 }
 
-                Button(action: { vm.saveToExternalFile() }) {
-                    Label("Save", systemImage: "tray.and.arrow.up")
+                Button(action: { showSaveOptions = true }) {
+                    Image(systemName: "tray.and.arrow.up")
+                        .help("Save")
                 }
 
                 Button(role: .destructive, action: {
                     showDeleteConfirmation = true
                 }) {
-                    Label("Delete All", systemImage: "trash")
+                    Image(systemName: "trash")
+                        .help("Delete All")
                 }
             }
         }
+
+        // MARK: - Load Options Sheet
+        .sheet(isPresented: $showLoadOptions) {
+            VStack(spacing: 16) {
+                Text("Load From File")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Button("Load Transactions") {
+                    vm.loadFromExternalFile()
+                    showLoadOptions = false
+                }
+
+                Button("Load Recurring") {
+                    vm.loadRecurringFromFile()
+                    showLoadOptions = false
+                }
+
+                Button("Cancel", role: .cancel) {
+                    showLoadOptions = false
+                }
+            }
+            .padding()
+            .frame(width: 300)
+        }
+
+        // MARK: - Save Options Sheet
+        .sheet(isPresented: $showSaveOptions) {
+            VStack(spacing: 16) {
+                Text("Save To File")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Button("Save Transactions") {
+                    vm.saveToExternalFile()
+                    showSaveOptions = false
+                }
+
+                Button("Save Recurring") {
+                    vm.saveRecurringToFile()
+                    showSaveOptions = false
+                }
+
+                Button("Cancel", role: .cancel) {
+                    showSaveOptions = false
+                }
+            }
+            .padding()
+            .frame(width: 300)
+        }
         .alert("Delete All Transactions?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
-                vm.transactions.removeAll()
+                vm.recurring.removeAll()
                 vm.save()
             }
             Button("Cancel", role: .cancel) { }

@@ -35,6 +35,45 @@ class BudgetViewModel: ObservableObject {
     }
 
     private var cancellables = Set<AnyCancellable>()
+    
+    var recurringFileURL: URL {
+        let fm = FileManager.default
+
+        let folder = fm.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents/BudgetTracker")
+
+        if !fm.fileExists(atPath: folder.path) {
+            try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+
+        return folder.appendingPathComponent("recurring.json")
+    }
+
+    func saveRecurringToFile() {
+        do {
+            let data = try JSONEncoder().encode(recurring)
+            try data.write(to: recurringFileURL, options: [.atomic])
+            print("✅ Recurring saved to \(recurringFileURL)")
+        } catch {
+            print("❌ Failed to save recurring: \(error)")
+        }
+    }
+
+    func loadRecurringFromFile() {
+        do {
+            let data = try Data(contentsOf: recurringFileURL)
+            let loaded = try JSONDecoder().decode([RecurringTransaction].self, from: data)
+            DispatchQueue.main.async {
+                self.recurring = loaded
+            }
+            print("✅ Recurring loaded from \(recurringFileURL)")
+        } catch {
+            print("❌ Failed to load recurring: \(error)")
+        }
+    }
+
+    
+    
     var transactionsFileURL: URL {
         let fm = FileManager.default
 
