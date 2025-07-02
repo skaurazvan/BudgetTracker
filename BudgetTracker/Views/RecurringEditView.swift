@@ -8,8 +8,6 @@ struct RecurringEditView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-
-            // Basic fields
             Group {
                 Text("Name")
                 TextField("Enter name", text: $recurring.name)
@@ -24,7 +22,6 @@ struct RecurringEditView: View {
                     .textFieldStyle(.roundedBorder)
             }
 
-            // Category picker
             VStack(alignment: .leading, spacing: 8) {
                 Text("Category")
                 Picker("", selection: $recurring.category) {
@@ -35,14 +32,12 @@ struct RecurringEditView: View {
                 .pickerStyle(.menu)
             }
 
-            // Date picker
             VStack(alignment: .leading, spacing: 8) {
                 Text("Start Date")
                 DatePicker("", selection: $recurring.date, displayedComponents: .date)
                     .labelsHidden()
             }
 
-            // Recurrence picker
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recurrence")
                 Picker("", selection: $recurring.recurrence) {
@@ -54,27 +49,46 @@ struct RecurringEditView: View {
                 .pickerStyle(.segmented)
             }
 
-            // Buttons
             HStack {
+                if !isNew {
+                    Button(role: .destructive) {
+                        vm.recurring.removeAll { $0.id == recurring.id }
+                        vm.transactions.removeAll { $0.recurringID == recurring.id }
+                        vm.save()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .help("Delete")
+                }
+
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                Button("Save") {
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .help("Cancel")
+
+                Button {
                     guard !recurring.name.trimmingCharacters(in: .whitespaces).isEmpty else {
                         return
                     }
 
                     if isNew {
                         vm.recurring.append(recurring)
-                    } else {
-                        if let idx = vm.recurring.firstIndex(where: { $0.id == recurring.id }) {
-                            vm.recurring[idx] = recurring
-                        }
+                    } else if let idx = vm.recurring.firstIndex(where: { $0.id == recurring.id }) {
+                        vm.recurring[idx] = recurring
                     }
 
                     vm.insertMissingRecurring()
                     vm.save()
                     dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
                 }
+                .help("Save")
                 .keyboardShortcut(.defaultAction)
             }
         }
