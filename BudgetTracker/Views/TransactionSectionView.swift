@@ -119,8 +119,8 @@ struct TransactionSectionView: View {
 
     func dateView(_ date: Date) -> some View {
         Text(date.formatted(.dateTime.day().month(.abbreviated)))
-            .font(.title3.weight(.semibold))
-            .foregroundColor(.primary)
+            .font(.callout)
+            .foregroundColor(.secondary)
             .frame(width: 70, alignment: .leading)
     }
 
@@ -148,7 +148,7 @@ struct TransactionSectionView: View {
 
     func balanceView(_ balance: Double) -> some View {
         Text("£\(balance, format: .number.precision(.fractionLength(2)))")
-            .font(.caption)
+            .font(.callout) // ← Increased size from .caption
             .foregroundColor(.secondary)
             .frame(width: 80, alignment: .trailing)
     }
