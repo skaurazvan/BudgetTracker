@@ -14,6 +14,14 @@ struct RecurringListView: View {
     @State private var showLoadOptions = false
     @State private var showSaveOptions = false
     @State private var showDeleteConfirmation = false
+    
+    var backgroundColor: Color {
+        #if os(macOS)
+        return Color(nsColor: NSColor.windowBackgroundColor)
+        #else
+        return Color(UIColor.systemBackground)
+        #endif
+    }
 
 
     var body: some View {
@@ -52,15 +60,20 @@ struct RecurringListView: View {
                         .help("Add")
                 }
 
-                Button(action: { showLoadOptions = true }) {
+                Button(action: {
+                    vm.loadRecurringFromFile()
+                }) {
                     Image(systemName: "tray.and.arrow.down")
-                        .help("Load")
+                        .help("Load Recurring")
                 }
 
-                Button(action: { showSaveOptions = true }) {
+                Button(action: {
+                    vm.saveRecurringToFile()
+                }) {
                     Image(systemName: "tray.and.arrow.up")
-                        .help("Save")
+                        .help("Save Recurring")
                 }
+
 
                 Button(role: .destructive, action: {
                     showDeleteConfirmation = true
@@ -71,55 +84,7 @@ struct RecurringListView: View {
             }
         }
 
-        // MARK: - Load Options Sheet
-        .sheet(isPresented: $showLoadOptions) {
-            VStack(spacing: 16) {
-                Text("Load From File")
-                    .font(.title2)
-                    .fontWeight(.semibold)
 
-                Button("Load Transactions") {
-                    vm.loadFromExternalFile()
-                    showLoadOptions = false
-                }
-
-                Button("Load Recurring") {
-                    vm.loadRecurringFromFile()
-                    showLoadOptions = false
-                }
-
-                Button("Cancel", role: .cancel) {
-                    showLoadOptions = false
-                }
-            }
-            .padding()
-            .frame(width: 300)
-        }
-
-        // MARK: - Save Options Sheet
-        .sheet(isPresented: $showSaveOptions) {
-            VStack(spacing: 16) {
-                Text("Save To File")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Button("Save Transactions") {
-                    vm.saveToExternalFile()
-                    showSaveOptions = false
-                }
-
-                Button("Save Recurring") {
-                    vm.saveRecurringToFile()
-                    showSaveOptions = false
-                }
-
-                Button("Cancel", role: .cancel) {
-                    showSaveOptions = false
-                }
-            }
-            .padding()
-            .frame(width: 300)
-        }
         .alert("Delete All Transactions?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 vm.recurring.removeAll()
@@ -144,7 +109,7 @@ struct RecurringListView: View {
                     .buttonStyle(.borderless)
                 }
                 .padding()
-                .background(Color(NSColor.windowBackgroundColor))
+                .background(backgroundColor)
                 .overlay(Divider(), alignment: .bottom)
 
                 RecurringEditView(
@@ -180,7 +145,7 @@ struct RecurringListView: View {
                         .buttonStyle(.borderless)
                     }
                     .padding()
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .background(backgroundColor)
                     .overlay(Divider(), alignment: .bottom)
 
                     RecurringEditView(

@@ -9,21 +9,21 @@ import SwiftUI
 import Combine
 
 class BudgetViewModel: ObservableObject {
-  @Published var transactions: [Transaction] = []
-  @Published var recurring: [RecurringTransaction] = []
+    @Published var transactions: [Transaction] = []
+    @Published var recurring: [RecurringTransaction] = []
     @Published var categories: [Category] = [
-      Category(name: "Food", icon: "fork.knife"),
-      Category(name: "Rent", icon: "house"),
-      Category(name: "Salary", icon: "dollarsign.circle")
+        Category(name: "Food", icon: "fork.knife"),
+        Category(name: "Rent", icon: "house"),
+        Category(name: "Salary", icon: "dollarsign.circle")
     ]
-  @Published var startDate: Date = Calendar.current.date(byAdding: .day, value: -90, to: Date())!
-
+    @Published var startDate: Date = Calendar.current.date(byAdding: .day, value: -90, to: Date())!
+    
     init() {
         ensureStandardCategories()
         load()
         print("Recurring loaded:", recurring)
         insertMissingRecurring()
-
+        
         // Observe and auto-save
         $transactions
             .sink { [weak self] _ in self?.save() }
@@ -31,24 +31,24 @@ class BudgetViewModel: ObservableObject {
         $recurring
             .sink { [weak self] _ in self?.save() }
             .store(in: &cancellables)
-
+        
     }
-
+    
     private var cancellables = Set<AnyCancellable>()
     
     var recurringFileURL: URL {
         let fm = FileManager.default
-
-        let folder = fm.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents/BudgetTracker")
-
+        
+        let folder = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("BudgetTracker")
+        
+        
         if !fm.fileExists(atPath: folder.path) {
             try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
         }
-
         return folder.appendingPathComponent("recurring.json")
     }
-
+    
     func saveRecurringToFile() {
         do {
             let data = try JSONEncoder().encode(recurring)
@@ -58,7 +58,7 @@ class BudgetViewModel: ObservableObject {
             print("❌ Failed to save recurring: \(error)")
         }
     }
-
+    
     func loadRecurringFromFile() {
         do {
             let data = try Data(contentsOf: recurringFileURL)
@@ -71,51 +71,11 @@ class BudgetViewModel: ObservableObject {
             print("❌ Failed to load recurring: \(error)")
         }
     }
-
     
     
-    var transactionsFileURL: URL {
-        let fm = FileManager.default
-
-        // Attempt to save to ~/Documents/BudgetTracker/
-        let documentsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let localBudgetFolder = documentsURL.appendingPathComponent("BudgetTracker")
-
-        // Ensure the local folder exists
-        if !fm.fileExists(atPath: localBudgetFolder.path) {
-            try? fm.createDirectory(at: localBudgetFolder, withIntermediateDirectories: true)
-        }
-
-        return localBudgetFolder.appendingPathComponent("transactions.json")
-    }
-
-    func saveToExternalFile() {
-        do {
-            let data = try JSONEncoder().encode(transactions)
-            try data.write(to: transactionsFileURL, options: [.atomic])
-            print("✅ Transactions saved to \(transactionsFileURL)")
-        } catch {
-            print("❌ Failed to save transactions: \(error)")
-        }
-    }
-
-    func loadFromExternalFile() {
-        do {
-            let data = try Data(contentsOf: transactionsFileURL)
-            let loaded = try JSONDecoder().decode([Transaction].self, from: data)
-            DispatchQueue.main.async {
-                self.transactions = loaded
-            }
-            print("✅ Transactions loaded from \(transactionsFileURL)")
-        } catch {
-            print("❌ Failed to load transactions: \(error)")
-        }
-    }
-
-
     func ensureStandardCategories() {
         let existingNames = Set(categories.map { $0.name.lowercased() })
-
+        
         let standard: [(name: String, icon: String)] = [
             ("Food", "fork.knife"),
             ("Groceries", "fork.knife"),
@@ -166,7 +126,7 @@ class BudgetViewModel: ObservableObject {
             ("Misc", "ellipsis.circle.fill"),
             ("Other", "ellipsis.circle.fill")
         ]
-
+        
         for cat in standard where !existingNames.contains(cat.name.lowercased()) {
             categories.append(Category(name: cat.name, icon: cat.icon))
         }
@@ -175,21 +135,21 @@ class BudgetViewModel: ObservableObject {
         let now = Date()
         let start = Calendar.current.startOfDay(for: now)
         let end = Calendar.current.date(byAdding: .day, value: 90, to: start)!
-
+        
         // ✅ Remove expired one-time RecurringTransactions
         recurring.removeAll { r in
             r.recurrence == .none && r.date < start
         }
-
+        
         for r in recurring {
             if r.recurrence == .none {
                 // One-time recurring: add only if not already present and in the future or today
                 guard r.date >= start else { continue }
-
+                
                 let exists = transactions.contains {
                     $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: r.date)
                 }
-
+                
                 if !exists {
                     let tx = Transaction(
                         id: UUID(),
@@ -205,10 +165,10 @@ class BudgetViewModel: ObservableObject {
                 }
                 continue
             }
-
+            
             // START FIX — only generate from the actual start date
             var next = max(r.date, start)
-
+            
             // Align to the previous recurrence window if needed (but not before r.date)
             while true {
                 let prev = rewindDate(next, by: r.recurrence)
@@ -216,13 +176,13 @@ class BudgetViewModel: ObservableObject {
                 next = prev
             }
             // END FIX
-
+            
             while next <= end {
                 if next >= r.date {
                     let alreadyExists = transactions.contains {
                         $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: next)
                     }
-
+                    
                     if !alreadyExists {
                         let tx = Transaction(
                             id: UUID(),
@@ -237,15 +197,15 @@ class BudgetViewModel: ObservableObject {
                         transactions.append(tx)
                     }
                 }
-
+                
                 next = advanceDate(next, by: r.recurrence)
             }
         }
-
+        
         transactions.sort { $0.date > $1.date }
     }
-
-
+    
+    
     private func advanceDate(_ date: Date, by recurrence: Recurrence) -> Date {
         switch recurrence {
         case .weekly:
@@ -258,7 +218,7 @@ class BudgetViewModel: ObservableObject {
             return date
         }
     }
-
+    
     private func rewindDate(_ date: Date, by recurrence: Recurrence) -> Date {
         switch recurrence {
         case .weekly:
@@ -271,25 +231,25 @@ class BudgetViewModel: ObservableObject {
             return date
         }
     }
-
-
+    
+    
     private func dateComponent(for rec: Recurrence) -> DateComponents {
-      switch rec {
-      case .weekly:
-        return DateComponents(weekOfYear: 1)
-      case .fourWeekly:
-        return DateComponents(day: 28)
-      case .monthly:
-        return DateComponents(month: 1)
-      case .none:
-        return DateComponents(day: 1) // fallback
-      }
+        switch rec {
+        case .weekly:
+            return DateComponents(weekOfYear: 1)
+        case .fourWeekly:
+            return DateComponents(day: 28)
+        case .monthly:
+            return DateComponents(month: 1)
+        case .none:
+            return DateComponents(day: 1) // fallback
+        }
     }
-
-
+    
+    
     private let transactionsKey = "transactions"
     private let recurringKey = "recurringTransactions"
-
+    
     func save() {
         if let encoded = try? JSONEncoder().encode(transactions) {
             UserDefaults.standard.set(encoded, forKey: transactionsKey)
@@ -298,13 +258,13 @@ class BudgetViewModel: ObservableObject {
             UserDefaults.standard.set(encodedRecurring, forKey: recurringKey)
         }
     }
-
+    
     func load() {
         if let data = UserDefaults.standard.data(forKey: transactionsKey),
            let decoded = try? JSONDecoder().decode([Transaction].self, from: data) {
             transactions = decoded
         }
-
+        
         if let data = UserDefaults.standard.data(forKey: recurringKey),
            let decoded = try? JSONDecoder().decode([RecurringTransaction].self, from: data) {
             recurring = decoded
@@ -312,10 +272,10 @@ class BudgetViewModel: ObservableObject {
     }
     func deleteRecurring(at offsets: IndexSet) {
         let idsToDelete = offsets.map { recurring[$0].id }
-
+        
         // Remove from recurring list
         recurring.removeAll { idsToDelete.contains($0.id) }
-
+        
         // Remove associated transactions
         transactions.removeAll { tx in
             if let id = tx.recurringID {
@@ -323,7 +283,7 @@ class BudgetViewModel: ObservableObject {
             }
             return false
         }
-
+        
         // Save changes
         save()
     }
@@ -333,6 +293,6 @@ class BudgetViewModel: ObservableObject {
         insertMissingRecurring()
         save()
     }
-
-
+    
+    
 }

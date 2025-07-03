@@ -78,7 +78,6 @@ struct TransactionSectionView: View {
         }
     }
 
-
     @ViewBuilder
     func transactionRow(tx: Transaction, balance: Decimal) -> some View {
         let doubleBalance = (balance as NSDecimalNumber).doubleValue
@@ -90,6 +89,59 @@ struct TransactionSectionView: View {
             #endif
         }()
 
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(tx.date.formatted(.dateTime.day().month()))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+
+                    Spacer()
+
+                    Text("£\(Decimal(tx.amount), format: .number.precision(.fractionLength(2)))")
+                        .foregroundColor(tx.amount >= 0 ? .green : .red)
+                        .font(.headline)
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: iconName(for: tx.category))
+                        .foregroundColor(.blue)
+
+                    Text(tx.name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    if tx.recurrence != .none {
+                        Image(systemName: "repeat")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+
+                    Spacer()
+
+                    Text("£\(doubleBalance, format: .number.precision(.fractionLength(2)))")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(cardFillColor)
+                    .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+            )
+            .padding(.vertical, 4)
+        } else {
+            regularTransactionRow(tx: tx, balance: doubleBalance, fill: cardFillColor)
+        }
+        #else
+        regularTransactionRow(tx: tx, balance: doubleBalance, fill: cardFillColor)
+        #endif
+    }
+
+    @ViewBuilder
+    func regularTransactionRow(tx: Transaction, balance: Double, fill: Color) -> some View {
         HStack(alignment: .center, spacing: 16) {
             dateView(tx.date)
 
@@ -105,12 +157,12 @@ struct TransactionSectionView: View {
             Spacer()
 
             amountView(Decimal(tx.amount))
-            balanceView(doubleBalance)
+            balanceView(balance)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(cardFillColor)
+                .fill(fill)
                 .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                 .shadow(color: .white.opacity(0.4), radius: 1, x: -1, y: -1)
         )
