@@ -49,28 +49,34 @@ class BudgetViewModel: ObservableObject {
         return folder.appendingPathComponent("recurring.json")
     }
     
-    func saveRecurringToFile() {
+    func saveRecurringToFile(to url: URL) {
         do {
-            let data = try JSONEncoder().encode(recurring)
-            try data.write(to: recurringFileURL, options: [.atomic])
-            print("✅ Recurring saved to \(recurringFileURL)")
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .secondsSince1970
+            let data = try encoder.encode(recurring)
+            try data.write(to: url, options: [.atomic])
+            print("✅ Recurring saved to \(url)")
         } catch {
             print("❌ Failed to save recurring: \(error)")
         }
     }
+
     
-    func loadRecurringFromFile() {
+    func loadRecurringFromFile(from url: URL) {
         do {
-            let data = try Data(contentsOf: recurringFileURL)
-            let loaded = try JSONDecoder().decode([RecurringTransaction].self, from: data)
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .secondsSince1970
+            let loaded = try decoder.decode([RecurringTransaction].self, from: data)
             DispatchQueue.main.async {
                 self.recurring = loaded
             }
-            print("✅ Recurring loaded from \(recurringFileURL)")
+            print("✅ Recurring loaded from \(url)")
         } catch {
             print("❌ Failed to load recurring: \(error)")
         }
     }
+
     
     
     func ensureStandardCategories() {
