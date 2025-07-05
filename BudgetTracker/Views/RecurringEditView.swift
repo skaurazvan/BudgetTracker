@@ -37,6 +37,7 @@ struct RecurringEditView: View {
                 DatePicker("", selection: $recurring.date, displayedComponents: .date)
                     .labelsHidden()
             }
+            
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recurrence")
@@ -48,7 +49,21 @@ struct RecurringEditView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            // End Date picker
+            Toggle("Has End Date", isOn: Binding(
+                get: { recurring.endDate != nil },
+                set: { hasEnd in
+                    recurring.endDate = hasEnd ? Calendar.current.date(byAdding: .month, value: 1, to: recurring.date) : nil
+                }
+            ))
 
+            if let _ = recurring.endDate {
+                DatePicker("End Date", selection: Binding(
+                    get: { recurring.endDate ?? recurring.date },
+                    set: { newDate in recurring.endDate = newDate }
+                ), in: recurring.date..., displayedComponents: .date)
+                .labelsHidden()
+            }
             HStack {
                 if !isNew {
                     Button(role: .destructive) {

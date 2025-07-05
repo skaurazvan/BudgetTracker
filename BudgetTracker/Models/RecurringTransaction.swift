@@ -10,11 +10,13 @@ import Foundation
 struct RecurringTransaction: Identifiable, Codable, Equatable {
     let id: UUID
     var date: Date
+    var endDate: Date?         
     var category: String
     var name: String
     var description: String
     var amount: Double
     var recurrence: Recurrence
 }
+
 
 

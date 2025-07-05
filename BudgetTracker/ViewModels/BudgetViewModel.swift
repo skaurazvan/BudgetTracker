@@ -137,25 +137,26 @@ class BudgetViewModel: ObservableObject {
             categories.append(Category(name: cat.name, icon: cat.icon))
         }
     }
+    
     func insertMissingRecurring() {
         let now = Date()
         let start = Calendar.current.startOfDay(for: now)
-        let end = Calendar.current.date(byAdding: .day, value: 90, to: start)!
-        
+        let defaultEnd = Calendar.current.date(byAdding: .day, value: 90, to: start)!
+
         // ✅ Remove expired one-time RecurringTransactions
         recurring.removeAll { r in
             r.recurrence == .none && r.date < start
         }
-        
+
         for r in recurring {
             if r.recurrence == .none {
                 // One-time recurring: add only if not already present and in the future or today
                 guard r.date >= start else { continue }
-                
+
                 let exists = transactions.contains {
                     $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: r.date)
                 }
-                
+
                 if !exists {
                     let tx = Transaction(
                         id: UUID(),
@@ -171,24 +172,24 @@ class BudgetViewModel: ObservableObject {
                 }
                 continue
             }
-            
-            // START FIX — only generate from the actual start date
+
+            // Calculate recurrence window
             var next = max(r.date, start)
-            
-            // Align to the previous recurrence window if needed (but not before r.date)
+            let recurrenceEnd = r.endDate ?? defaultEnd
+
+            // Rewind to aligned recurrence window
             while true {
                 let prev = rewindDate(next, by: r.recurrence)
                 if prev < r.date || prev < start { break }
                 next = prev
             }
-            // END FIX
-            
-            while next <= end {
+
+            while next <= recurrenceEnd {
                 if next >= r.date {
                     let alreadyExists = transactions.contains {
                         $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: next)
                     }
-                    
+
                     if !alreadyExists {
                         let tx = Transaction(
                             id: UUID(),
@@ -203,13 +204,14 @@ class BudgetViewModel: ObservableObject {
                         transactions.append(tx)
                     }
                 }
-                
+
                 next = advanceDate(next, by: r.recurrence)
             }
         }
-        
+
         transactions.sort { $0.date > $1.date }
     }
+
     
     
     private func advanceDate(_ date: Date, by recurrence: Recurrence) -> Date {
