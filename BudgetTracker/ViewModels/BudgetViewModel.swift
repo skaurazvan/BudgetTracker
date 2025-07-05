@@ -137,7 +137,6 @@ class BudgetViewModel: ObservableObject {
             categories.append(Category(name: cat.name, icon: cat.icon))
         }
     }
-    
     func insertMissingRecurring() {
         let now = Date()
         let start = Calendar.current.startOfDay(for: now)
@@ -153,15 +152,17 @@ class BudgetViewModel: ObservableObject {
                 // One-time recurring: add only if not already present and in the future or today
                 guard r.date >= start else { continue }
 
+                let adjustedDate = adjustForWeekendOnly(r.date)
+
                 let exists = transactions.contains {
-                    $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: r.date)
+                    $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: adjustedDate)
                 }
 
                 if !exists {
                     let tx = Transaction(
                         id: UUID(),
                         recurringID: r.id,
-                        date: r.date,
+                        date: adjustedDate,
                         category: r.category,
                         name: r.name,
                         description: r.description,
@@ -173,7 +174,7 @@ class BudgetViewModel: ObservableObject {
                 continue
             }
 
-            // Calculate recurrence window
+            // Recurring case
             var next = max(r.date, start)
             let recurrenceEnd = r.endDate ?? defaultEnd
 
@@ -186,15 +187,16 @@ class BudgetViewModel: ObservableObject {
 
             while next <= recurrenceEnd {
                 if next >= r.date {
+                    let adjustedDate = adjustForWeekendOnly(next)
                     let alreadyExists = transactions.contains {
-                        $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: next)
+                        $0.recurringID == r.id && Calendar.current.isDate($0.date, inSameDayAs: adjustedDate)
                     }
 
                     if !alreadyExists {
                         let tx = Transaction(
                             id: UUID(),
                             recurringID: r.id,
-                            date: next,
+                            date: adjustedDate,
                             category: r.category,
                             name: r.name,
                             description: r.description,
@@ -212,7 +214,26 @@ class BudgetViewModel: ObservableObject {
         transactions.sort { $0.date > $1.date }
     }
 
-    
+
+
+
+    private func adjustForWeekendOnly(_ date: Date) -> Date {
+        var adjusted = Calendar.current.startOfDay(for: date)
+        let cal = Calendar.current
+        let wd = cal.component(.weekday, from: adjusted)
+        
+        if wd == 7 {
+            // Saturday → Monday
+            adjusted = cal.date(byAdding: .day, value: 2, to: adjusted)!
+        } else if wd == 1 {
+            // Sunday → Monday
+            adjusted = cal.date(byAdding: .day, value: 1, to: adjusted)!
+        }
+
+        return adjusted
+    }
+
+
     
     private func advanceDate(_ date: Date, by recurrence: Recurrence) -> Date {
         switch recurrence {
@@ -301,6 +322,6 @@ class BudgetViewModel: ObservableObject {
         insertMissingRecurring()
         save()
     }
-    
+
     
 }
